@@ -1,0 +1,16 @@
+{
+  "name": "Gojira",
+  "version": "0.0.1",
+  "private": true,
+  "author": "Brian Demant <brian.demant@gmail.com>",
+  "description": "A simple helpful robot for your Company",
+  "dependencies": {
+    "babel": "^5.4.7",
+    "eventemitter3": "^1.1.0",
+    "express": "^4.12.4",
+    "hipchatter": "https://github.com/briandemant/hipchatter.git"
+  },
+  "engines": {
+    "node": "0.10.x"
+  }
+}
