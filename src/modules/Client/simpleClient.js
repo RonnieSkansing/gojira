@@ -3,21 +3,56 @@ var util = require("util");
 // ctor is different from the other modules..
 module.exports = function(client, xmpp, modules, config) {
   this.client = client;
-  //this.eventEmitter = eventEmitter;
+  // { roomJidNick: [ personJid, personJid .. ], .. }
+  var rooms = {};
+  
+  var addRoom = function(roomName) {
+    rooms[roomName] = [];
+  };
+
+  var stanzaNotFromSelf = function(stanza) {
+    if(stanza.from === undefined) {
+      return true;
+    }
+    var room = (stanza.from.indexOf('/') > 0)
+               ? stanza.from.split('/')[0] : stanza.from;
+    return stanza.from !== room + '/' + config.bot.room_nick
+  }
+
+  /**
+   * @todo onJoinRoom() ->
+   *    add participant to room internally
+   *    add event callback hook
+   */
+
+   /**
+    * @todo onLeaveRoom() ->
+    *    add participant to room internally
+    */
+
+  this.onPrivateChatMessage = function(callback) {
+    client.on('stanza', function(stanza) {
+      if( stanza.is('message') === false || stanza.attrs.type !== 'chat') {
+        return;
+      }
+      if(stanzaNotFromSelf(stanza) === false) {
+        return;
+      }
+      var body = stanza.getChild('body');
+      if ( ! body) {
+        return;
+      }
+      callback(body.getText(), stanza.to, stanza.from);
+    });
+  }
 
   this.onPublicChatMessage = function(callback) {
-    client.on("stanza", function(stanza) {
+    client.on('stanza', function(stanza) {
       // Ignore if not room message
-      if ( ! stanza.is('message') || ! stanza.attrs.type === 'groupchat') {
+      if( ! stanza.is('message') || stanza.attrs.type !== 'groupchat') {
         return;
       }
-      if(stanza.from === undefined) {
-        return;
-      }
-      // ignore messages sent by bot itself
-      var room = (stanza.from.indexOf('/') > 0)
-                 ? stanza.from.split('/')[0] : stanza.from;
-      if (stanza.from === room + '/' + config.bot.room_nick) {
+      if(stanzaNotFromSelf(stanza) === false) {
         return;
       }
       // Ignore empty messages like topic change
@@ -25,12 +60,15 @@ module.exports = function(client, xmpp, modules, config) {
       if ( ! body) {
         return;
       }
-      callback(
-        body.getText(),
-        stanza.to,
-        stanza.from
-      );
+      callback(body.getText(), stanza.to, stanza.from);
     });
+  };
+
+  this.getRooms = function() {
+    var roomNames = [];
+    for(roomName in rooms) {
+      roomNames.push(roomName);
+    }
   };
 
   this.join = function(jid, nick, callback) {
@@ -45,6 +83,17 @@ module.exports = function(client, xmpp, modules, config) {
     client.send(
       presence
     );
+    // adding room to active list along with participants
+    addRoom(jid + '/' + nick);
+  };
+
+  this.leave = function(jidNick) {
+    delete rooms[jidNick];
+    var presence = new xmpp.Element('presence', {
+      to: jidNick,
+      type: 'unavailable'
+    });
+    client.send(presence);
   };
 
   this.showAsAvailable = function() {

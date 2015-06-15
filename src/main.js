@@ -37,6 +37,10 @@ bot.client.on('online', function() {
   setInterval(function() {
     bot.client.send(' ');
   }, 30000);
+
+  bot.onPrivateChatMessage(function(message) {
+    console.log(message);
+  });
   /**
    * Inject core into modules
    */
