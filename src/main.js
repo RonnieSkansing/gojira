@@ -28,25 +28,26 @@ var bot = new modules['Client'](
 //  is injected into each module later
 delete modules['Client'];
 bot.client.on('online', function() {
+  util.log("Firing up modules");
+  for(moduleName in modules) {
+    modules[moduleName](bot, xmpp, modules, config);
+  }
   bot.join(
     config.bot.room_jid,
     config.bot.room_nick
   );
   bot.showAsAvailable();
+  util.log("Setting up core event hooks");
   // keep alive or be disconnected
   setInterval(function() {
     bot.client.send(' ');
   }, 30000);
-
-  bot.onPrivateChatMessage(function(message) {
-    console.log(message);
+  // keeps users in/out of room insync for functions like getParticipantsByRoom or getRooms
+  bot.onParticipantJoinRoom(function(from) {
+    bot.addParticipantToRoom(from);
   });
-  /**
-   * Inject core into modules
-   */
-  util.log("Firing up modules");
-  for(moduleName in modules) {
-    modules[moduleName](bot, xmpp, modules, config);
-  }
+  bot.onParticipantLeaveRoom(function(from) {
+    bot.unsetParticipantFromRoom(from);
+  });
   util.log("Connected");
 });

@@ -3,9 +3,9 @@ var util = require("util");
 // ctor is different from the other modules..
 module.exports = function(client, xmpp, modules, config) {
   this.client = client;
-  // { roomJidNick: [ personJid, personJid .. ], .. }
+  // { roomJidNick: [ participantNick, participantNick .. ], .. }
   var rooms = {};
-  
+
   var addRoom = function(roomName) {
     rooms[roomName] = [];
   };
@@ -15,20 +15,70 @@ module.exports = function(client, xmpp, modules, config) {
       return true;
     }
     var room = (stanza.from.indexOf('/') > 0)
-               ? stanza.from.split('/')[0] : stanza.from;
+              ? stanza.from.split('/')[0] : stanza.from;
     return stanza.from !== room + '/' + config.bot.room_nick
+
   }
 
-  /**
-   * @todo onJoinRoom() ->
-   *    add participant to room internally
-   *    add event callback hook
-   */
+  this.unsetParticipantFromRoom = function(from) {
+    var jidNick = from.split('/');
+    delete rooms[jidNick[0]][jidNick[1]];
+  };
 
-   /**
-    * @todo onLeaveRoom() ->
-    *    add participant to room internally
-    */
+  this.addParticipantToRoom = function(from) {
+    var jidNick = from.split('/');
+    rooms[jidNick[0]].push(jidNick[1]);
+  };
+
+  // Example : bot.getParticipantsByRoom('365577_bottest@conf.hipchat.com')
+  this.getParticipantsByRoom = function(roomName) {
+    if(rooms[roomName] === undefined) {
+      return;
+    }
+    return rooms[roomName];
+  };
+
+  this.onParticipantLeaveRoom = function(callback) {
+    client.on('stanza', function(stanza) {
+      if(stanza.getChild('x') === undefined) {
+        return;
+      }
+      if(stanza.getChild('x').getChild('item') === undefined) {
+        return;
+      }
+      if(stanza.getChild('x').getChild('item').attrs.role !== 'none') {
+        return;
+      }
+      callback(from);
+    });
+  };
+
+  // this event is fired for every person in a room upon joining and afterwards
+  // each time someone joins or leaves the room.
+  this.onParticipantJoinRoom = function(callback) {
+    client.on('stanza', function(stanza) {
+      if(stanza.is('presence') === false) {
+        return;
+      }
+      if(stanza.from.split('||')[0].split('/')[1] === config.bot.room_nick) {
+        return;
+      }
+      if(stanza.from.split('/')[1] === config.bot.room_nick) {
+        return;
+      }
+      if(stanza.getChild('x') === undefined) {
+        return;
+      }
+      var item = stanza.getChild('x').getChild('item');
+      if(item === undefined) {
+        return;
+      }
+      if(item.attrs.role !== 'participant') {
+        return;
+      }
+      callback(stanza.from);
+    });
+  };
 
   this.onPrivateChatMessage = function(callback) {
     client.on('stanza', function(stanza) {
@@ -49,13 +99,12 @@ module.exports = function(client, xmpp, modules, config) {
   this.onPublicChatMessage = function(callback) {
     client.on('stanza', function(stanza) {
       // Ignore if not room message
-      if( ! stanza.is('message') || stanza.attrs.type !== 'groupchat') {
+      if( stanza.is('message') === false || stanza.attrs.type !== 'groupchat') {
         return;
       }
       if(stanzaNotFromSelf(stanza) === false) {
         return;
       }
-      // Ignore empty messages like topic change
       var body = stanza.getChild('body');
       if ( ! body) {
         return;
@@ -69,6 +118,7 @@ module.exports = function(client, xmpp, modules, config) {
     for(roomName in rooms) {
       roomNames.push(roomName);
     }
+    return roomNames;
   };
 
   this.join = function(jid, nick, callback) {
@@ -83,8 +133,7 @@ module.exports = function(client, xmpp, modules, config) {
     client.send(
       presence
     );
-    // adding room to active list along with participants
-    addRoom(jid + '/' + nick);
+    addRoom(jid);
   };
 
   this.leave = function(jidNick) {
