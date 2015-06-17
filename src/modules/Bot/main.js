@@ -1,15 +1,23 @@
 var util = require("util");
-//var eventEmitter = require('events').EventEmitter;
-// ctor is different from the other modules..
+
 module.exports = function(client, xmpp, modules, config) {
+  /**
+   * @var client  exposed for bootstrapping or beyond api
+   */
   this.client = client;
-  // { roomJidNick: [ participantNick, participantNick .. ], .. }
+  /**
+   * { roomJidNick: [ participantNick, participantNick .. ], .. }
+   * @var rooms  rooms the bot is currently in and participants in each room
+   */
   var rooms = {};
 
   var addRoom = function(roomName) {
     rooms[roomName] = [];
   };
 
+  /**
+   * @todo Refactor this, it failed on participant join room and does not support multiple rooms 
+   */
   var stanzaNotFromSelf = function(stanza) {
     if(stanza.from === undefined) {
       return true;
@@ -143,18 +151,21 @@ module.exports = function(client, xmpp, modules, config) {
       type: 'unavailable'
     });
     client.send(presence);
+    util.log('Left room ' + jidNick);
   };
 
   this.showAsAvailable = function() {
     var presence = new xmpp.Element('presence', { type: 'available' });
     presence.c('show').t('chat');
     client.send(presence);
+    util.log('Bot presence is available');
   }
 
   this.showAsOffline = function() {
     var presence = new xmpp.Element('presence', { type: 'unavailable' });
     presence.c('show').t('chat');
     client.send(presence);
+    util.log('Bot presence is unavailable');
   }
 
   this.showAsAway = function(status) {
@@ -164,6 +175,7 @@ module.exports = function(client, xmpp, modules, config) {
       presence.c('status').t(status);
     }
     client.send(presence);
+    util.log('Bot presence is away');
   }
 
   this.showAsBusy = function(status) {
@@ -173,6 +185,7 @@ module.exports = function(client, xmpp, modules, config) {
       presence.c('status').t(status);
     }
     client.send(presence);
+    util.log('Bot presence is busy');
   }
 
   this.send = function(message, jidNick) {
@@ -181,10 +194,13 @@ module.exports = function(client, xmpp, modules, config) {
     client.send(
         groupChatMessage
     );
+    util.log('Bot talking to ' + jidNick);
   };
 
   this.exit = function() {
+    util.log('Shutting down bot');
     client.end();
+    util.log('Have a nice day!');
     process.exit(0);
   }
 };

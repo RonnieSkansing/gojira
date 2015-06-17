@@ -1,6 +1,6 @@
 var util = require("util");
 
-module.exports = function(bot, xmpp, modules, config) {
+module.exports = function(bot, modules, config) {
   bot.onPublicChatMessage(function(message, to, from) {
     var filter = /^random\s(-?\d+)\s(-?\d+)/;
     var matches = filter.exec(message);

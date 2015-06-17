@@ -1,7 +1,7 @@
 var util = require('util');
 var http = require('http');
 
-module.exports = function(bot, xmpp, modules, config) {
+module.exports = function(bot, modules, config) {
   // { resource: amountOfArgumentsRequired
   var whitelist = {
       'off': 2,

@@ -2,17 +2,17 @@ module.exports = {
   "debug": true,
   "src": "./",
   "bot": {
-    "jid": "",
-    "password": "",
-    "room_jid": "",
-    "room_nick": ""
+    "jid": "x",
+    "password": "x",
+    "room_jid": "x",
+    "room_nick": "x"
   },
   "modulePath": "./modules/",
   "middlewares": {
     "foo": "main.js"
   },
   "modules": {
-    "Client": "simpleClient.js",
+    "Bot": "main.js",
     "Foass": "main.js",
     "Random": "main.js"
   }
