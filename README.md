@@ -1,3 +1,3 @@
 # Gojira your friendly chat monster
 
-Such bot..
+Nothing to see here.. move along
